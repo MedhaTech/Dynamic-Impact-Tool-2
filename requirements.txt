@@ -1,0 +1,15 @@
+streamlit
+pandas
+openpyxl
+python-dotenv
+plotly
+reportlab
+python-pptx
+requests
+groq
+langchain-groq
+fpdf
+langchain-ollama
+langchain-community
+fpdf2
+openai
