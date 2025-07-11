@@ -78,134 +78,303 @@
 
 
 
-from pptx import Presentation
-from pptx.util import Inches, Pt
+# from pptx import Presentation
+# from pptx.util import Inches, Pt
 
-def export_to_pptx(session_data, compare_mode=False):
-    prs = Presentation()
-    title_slide_layout = prs.slide_layouts[0]
-    content_slide_layout = prs.slide_layouts[1]
+# def export_to_pptx(session_data, compare_mode=False):
+#     prs = Presentation()
+#     title_slide_layout = prs.slide_layouts[0]
+#     content_slide_layout = prs.slide_layouts[1]
 
-    if compare_mode:
-        # Title Slide for Comparison
-        slide = prs.slides.add_slide(title_slide_layout)
-        slide.shapes.title.text = "Comparison Report"
-        slide.placeholders[1].text = "Generated using Dynamic Impact Tool"
+#     if compare_mode:
+#         # Title Slide for Comparison
+#         slide = prs.slides.add_slide(title_slide_layout)
+#         slide.shapes.title.text = "Comparison Report"
+#         slide.placeholders[1].text = "Generated using Dynamic Impact Tool"
 
-        # Comparison Insights
-        for insight in session_data.get("insights", []):
-            slide = prs.slides.add_slide(content_slide_layout)
-            slide.shapes.title.text = "Comparison Insight"
+#         # Comparison Insights
+#         for insight in session_data.get("insights", []):
+#             slide = prs.slides.add_slide(content_slide_layout)
+#             slide.shapes.title.text = "Comparison Insight"
 
-            question = f"Q: {insight['question']}"
-            answer = f"A: {insight['result']}"
+#             question = f"Q: {insight['question']}"
+#             answer = f"A: {insight['result']}"
 
-            text_frame = slide.shapes.placeholders[1].text_frame
-            text_frame.text = question
-            text_frame.add_paragraph(answer)
+#             text_frame = slide.shapes.placeholders[1].text_frame
+#             text_frame.text = question
+#             text_frame.add_paragraph(answer)
 
-        # Comparison Chat History
-        if session_data.get("chat_history"):
-            slide = prs.slides.add_slide(content_slide_layout)
-            slide.shapes.title.text = "Chat History"
+#         # Comparison Chat History
+#         if session_data.get("chat_history"):
+#             slide = prs.slides.add_slide(content_slide_layout)
+#             slide.shapes.title.text = "Chat History"
 
-            chat_text = ""
-            for msg in session_data["chat_history"]:
-                chat_text += f"User: {msg['user']}\nBot: {msg['assistant'].get('response', msg['assistant'])}\n\n"
+#             chat_text = ""
+#             for msg in session_data["chat_history"]:
+#                 chat_text += f"User: {msg['user']}\nBot: {msg['assistant'].get('response', msg['assistant'])}\n\n"
 
-            slide.shapes.placeholders[1].text = chat_text[:5000]  # Preventing slide overflow
+#             slide.shapes.placeholders[1].text = chat_text[:5000]  # Preventing slide overflow
 
-    else:
-        # Title Slide for Single Dataset
-        slide = prs.slides.add_slide(title_slide_layout)
-        slide.shapes.title.text = "Dataset Report"
-        slide.placeholders[1].text = "Generated using Dynamic Impact Tool"
+#     else:
+#         # Title Slide for Single Dataset
+#         slide = prs.slides.add_slide(title_slide_layout)
+#         slide.shapes.title.text = "Dataset Report"
+#         slide.placeholders[1].text = "Generated using Dynamic Impact Tool"
 
-        # Dataset Insights
-        for insight in session_data.get("selected_insight_results", []):
-            slide = prs.slides.add_slide(content_slide_layout)
-            slide.shapes.title.text = "Insight"
+#         # Dataset Insights
+#         for insight in session_data.get("selected_insight_results", []):
+#             slide = prs.slides.add_slide(content_slide_layout)
+#             slide.shapes.title.text = "Insight"
 
-            question = f"Q: {insight['question']}"
-            answer = f"A: {insight['result']}"
+#             question = f"Q: {insight['question']}"
+#             answer = f"A: {insight['result']}"
 
-            text_frame = slide.shapes.placeholders[1].text_frame
-            text_frame.text = question
-            text_frame.add_paragraph(answer)
+#             text_frame = slide.shapes.placeholders[1].text_frame
+#             text_frame.text = question
+#             text_frame.add_paragraph(answer)
 
-        # Dataset Chat History
-        if session_data.get("chat_history"):
-            slide = prs.slides.add_slide(content_slide_layout)
-            slide.shapes.title.text = "Chat History"
+#         # Dataset Chat History
+#         if session_data.get("chat_history"):
+#             slide = prs.slides.add_slide(content_slide_layout)
+#             slide.shapes.title.text = "Chat History"
 
-            chat_text = ""
-            for msg in session_data["chat_history"]:
-                chat_text += f"User: {msg['user']}\nBot: {msg['assistant'].get('response', msg['assistant'])}\n\n"
+#             chat_text = ""
+#             for msg in session_data["chat_history"]:
+#                 chat_text += f"User: {msg['user']}\nBot: {msg['assistant'].get('response', msg['assistant'])}\n\n"
 
-            slide.shapes.placeholders[1].text = chat_text[:5000]  # Preventing slide overflow
+#             slide.shapes.placeholders[1].text = chat_text[:5000]  # Preventing slide overflow
 
-    file_path = "generated_report.pptx"
-    prs.save(file_path)
-    return file_path
+#     file_path = "generated_report.pptx"
+#     prs.save(file_path)
+#     return file_path
+# from fpdf import FPDF
+
+# def generate_pdf_report(session_data, compare_mode=False):
+#     pdf = FPDF()
+#     pdf.add_page()
+
+#     if compare_mode:
+#         pdf.set_font("Arial", 'B', 16)
+#         pdf.cell(0, 10, "Comparison Insights Report", ln=True, align="C")
+#         pdf.ln(10)
+
+#         # Add Comparison Insights
+#         pdf.set_font("Arial", 'B', 14)
+#         pdf.cell(0, 10, "Generated Comparison Insights:", ln=True)
+#         pdf.ln(5)
+#         for insight in session_data.get("insights", []):
+#             pdf.set_font("Arial", 'B', 12)
+#             pdf.multi_cell(0, 8, f"Question: {insight['question']}")
+#             pdf.set_font("Arial", '', 12)
+#             pdf.multi_cell(0, 8, f"Answer: {insight['result']}")
+#             pdf.ln(4)
+
+#         # Add Chat History
+#         pdf.set_font("Arial", 'B', 14)
+#         pdf.cell(0, 10, "Chat History:", ln=True)
+#         pdf.ln(5)
+#         for msg in session_data.get("chat_history", []):
+#             pdf.set_font("Arial", 'B', 12)
+#             pdf.multi_cell(0, 8, f"User: {msg['user']}")
+#             pdf.set_font("Arial", '', 12)
+#             pdf.multi_cell(0, 8, f"Bot: {msg['assistant'].get('response', msg['assistant'])}")
+#             pdf.ln(4)
+#     else:
+#         pdf.set_font("Arial", 'B', 16)
+#         pdf.cell(0, 10, "Single Dataset Report", ln=True, align="C")
+#         pdf.ln(10)
+
+#         # Add Insights
+#         pdf.set_font("Arial", 'B', 14)
+#         pdf.cell(0, 10, "Generated Insights:", ln=True)
+#         pdf.ln(5)
+#         for insight in session_data.get("selected_insight_results", []):
+#             pdf.set_font("Arial", 'B', 12)
+#             pdf.multi_cell(0, 8, f"Question: {insight['question']}")
+#             pdf.set_font("Arial", '', 12)
+#             pdf.multi_cell(0, 8, f"Answer: {insight['result']}")
+#             pdf.ln(4)
+
+#         # Add Chat History
+#         pdf.set_font("Arial", 'B', 14)
+#         pdf.cell(0, 10, "Chat History:", ln=True)
+#         pdf.ln(5)
+#         for msg in session_data.get("chat_history", []):
+#             pdf.set_font("Arial", 'B', 12)
+#             pdf.multi_cell(0, 8, f"User: {msg['user']}")
+#             pdf.set_font("Arial", '', 12)
+#             pdf.multi_cell(0, 8, f"Bot: {msg['assistant'].get('response', msg['assistant'])}")
+#             pdf.ln(4)
+
+#     file_path = "generated_report.pdf"
+#     pdf.output(file_path)
+#     return file_path
+
+
 from fpdf import FPDF
+import os
+import re
+import json
+import pandas as pd
+from pptx import Presentation
 
-def generate_pdf_report(session_data, compare_mode=False):
+# ==================== PDF EXPORTER ==================== #
+def generate_pdf_report(session, filename="summary.pdf"):
     pdf = FPDF()
     pdf.add_page()
 
-    if compare_mode:
-        pdf.set_font("Arial", 'B', 16)
-        pdf.cell(0, 10, "Comparison Insights Report", ln=True, align="C")
-        pdf.ln(10)
+    font_path = os.path.join("assets", "fonts", "DejaVuSans.ttf")
+    pdf.add_font('DejaVu', '', font_path, uni=True)
+    pdf.set_font('DejaVu', '', 14)
 
-        # Add Comparison Insights
-        pdf.set_font("Arial", 'B', 14)
-        pdf.cell(0, 10, "Generated Comparison Insights:", ln=True)
-        pdf.ln(5)
-        for insight in session_data.get("insights", []):
-            pdf.set_font("Arial", 'B', 12)
-            pdf.multi_cell(0, 8, f"Question: {insight['question']}")
-            pdf.set_font("Arial", '', 12)
-            pdf.multi_cell(0, 8, f"Answer: {insight['result']}")
-            pdf.ln(4)
+    pdf.cell(0, 10, f"Dataset: {session.get('name', 'Unnamed Dataset')}", ln=True)
 
-        # Add Chat History
-        pdf.set_font("Arial", 'B', 14)
-        pdf.cell(0, 10, "Chat History:", ln=True)
-        pdf.ln(5)
-        for msg in session_data.get("chat_history", []):
-            pdf.set_font("Arial", 'B', 12)
-            pdf.multi_cell(0, 8, f"User: {msg['user']}")
-            pdf.set_font("Arial", '', 12)
-            pdf.multi_cell(0, 8, f"Bot: {msg['assistant'].get('response', msg['assistant'])}")
-            pdf.ln(4)
-    else:
-        pdf.set_font("Arial", 'B', 16)
-        pdf.cell(0, 10, "Single Dataset Report", ln=True, align="C")
-        pdf.ln(10)
+    pdf.cell(0, 10, "Insights:", ln=True)
+    for insight in session.get('insights', []):
+        pdf.multi_cell(0, 10, f"🔍 {insight['question']}\n{insight['result']}\n")
 
-        # Add Insights
-        pdf.set_font("Arial", 'B', 14)
-        pdf.cell(0, 10, "Generated Insights:", ln=True)
-        pdf.ln(5)
-        for insight in session_data.get("selected_insight_results", []):
-            pdf.set_font("Arial", 'B', 12)
-            pdf.multi_cell(0, 8, f"Question: {insight['question']}")
-            pdf.set_font("Arial", '', 12)
-            pdf.multi_cell(0, 8, f"Answer: {insight['result']}")
-            pdf.ln(4)
+    pdf.cell(0, 10, "Chat History:", ln=True)
+    for chat in session.get('chat_history', []):
+        pdf.multi_cell(0, 10, f"🧑 {chat['user']}\n🤖 {chat['assistant'].get('response', '')}\n")
 
-        # Add Chat History
-        pdf.set_font("Arial", 'B', 14)
-        pdf.cell(0, 10, "Chat History:", ln=True)
-        pdf.ln(5)
-        for msg in session_data.get("chat_history", []):
-            pdf.set_font("Arial", 'B', 12)
-            pdf.multi_cell(0, 8, f"User: {msg['user']}")
-            pdf.set_font("Arial", '', 12)
-            pdf.multi_cell(0, 8, f"Bot: {msg['assistant'].get('response', msg['assistant'])}")
-            pdf.ln(4)
+    output_path = os.path.join("exports", filename)
+    pdf.output(output_path)
+    return output_path
 
-    file_path = "generated_report.pdf"
-    pdf.output(file_path)
-    return file_path
+
+from fpdf import FPDF
+from fpdf.enums import XPos, YPos
+import os
+
+def generate_pdf_report(session, filename="summary.pdf"):
+    pdf = FPDF()
+    pdf.add_page()
+
+    font_path = os.path.join("assets", "fonts", "DejaVuSans.ttf")
+    pdf.add_font("DejaVu", "", font_path)
+    pdf.set_font("DejaVu", "", 14)
+
+    pdf.cell(0, 10, f"Dataset: {session.get('name', 'Unnamed Dataset')}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    pdf.cell(0, 10, "Insights:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    insight_list = session.get("insights") or session.get("selected_insight_results", [])
+    for insight in insight_list:
+        pdf.multi_cell(0, 10, f"Question: {insight['question']}\nAnswer: {insight['result']}\n")
+
+    pdf.cell(0, 10, "Chat History:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    for chat in session.get('chat_history', []):
+        user_msg = chat.get('user', '')
+        assistant_msg = chat.get('assistant', {}).get('response', '')
+        pdf.multi_cell(0, 10, f"User: {user_msg}\nBot: {assistant_msg}\n")
+
+    os.makedirs("exports", exist_ok=True)
+    output_path = os.path.join("exports", filename)
+    pdf.output(output_path)
+    return output_path
+
+# from fpdf import FPDF
+# from fpdf.enums import XPos, YPos
+# import os
+# import tempfile
+# import matplotlib.pyplot as plt
+# import plotly.io as pio
+
+
+# def generate_pdf_report(session, filename="summary.pdf"):
+#     pdf = FPDF()
+#     pdf.add_page()
+
+#     font_path = os.path.join("assets", "fonts", "DejaVuSans.ttf")
+#     pdf.add_font("DejaVu", "", font_path)
+#     pdf.set_font("DejaVu", "", 14)
+
+#     pdf.cell(0, 10, f"Dataset: {session.get('name', 'Unnamed Dataset')}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+#     pdf.cell(0, 10, "Insights:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+#     for idx, insight in enumerate(session.get('insights', [])):
+#         pdf.multi_cell(0, 10, f"Question: {insight['question']}\nAnswer: {insight['result']}\n")
+
+#         # Check for and include any associated figures if saved previously
+#         image_path = insight.get("plot_path")
+#         if image_path and os.path.exists(image_path):
+#             pdf.image(image_path, w=170)  # Resize image for consistency
+#             pdf.ln(10)
+
+#     pdf.cell(0, 10, "Chat History:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+#     for chat in session.get('chat_history', []):
+#         user_msg = chat.get('user', '')
+#         assistant_msg = chat.get('assistant', {}).get('response', '')
+#         pdf.multi_cell(0, 10, f"User: {user_msg}\nBot: {assistant_msg}\n")
+
+#     os.makedirs("exports", exist_ok=True)
+#     output_path = os.path.join("exports", filename)
+#     pdf.output(output_path)
+#     return output_path
+
+
+# # ==================== PPTX EXPORTER ==================== #
+# from pptx import Presentation
+# from pptx.util import Inches
+
+# def export_to_pptx(session, filename="summary.pptx"):
+#     prs = Presentation()
+#     slide_layout = prs.slide_layouts[1]
+
+#     slide = prs.slides.add_slide(slide_layout)
+#     slide.shapes.title.text = f"Dataset: {session.get('name', 'Unnamed Dataset')}"
+
+#     for insight in session.get('insights', []):
+#         slide = prs.slides.add_slide(slide_layout)
+#         slide.shapes.title.text = f"🔍 {insight['question']}"
+#         slide.shapes.placeholders[1].text = insight['result']
+
+#         image_path = insight.get("plot_path")
+#         if image_path and os.path.exists(image_path):
+#             left = Inches(1)
+#             top = Inches(2)
+#             height = Inches(3)
+#             slide.shapes.add_picture(image_path, left, top, height=height)
+
+#     slide = prs.slides.add_slide(slide_layout)
+#     slide.shapes.title.text = "Chat History"
+#     chat_text = ""
+#     for chat in session.get('chat_history', []):
+#         chat_text += f"🧑 {chat['user']}\n🤖 {chat['assistant'].get('response', '')}\n\n"
+#     slide.shapes.placeholders[1].text = chat_text
+
+#     output_path = os.path.join("exports", filename)
+#     prs.save(output_path)
+#     return output_path
+
+
+
+
+
+
+
+# ==================== PPTX EXPORTER ==================== #
+def export_to_pptx(session, filename="summary.pptx"):
+    prs = Presentation()
+
+    slide = prs.slides.add_slide(prs.slide_layouts[1])
+    slide.shapes.title.text = f"Dataset: {session.get('name', 'Unnamed Dataset')}"
+    insight_list = session.get("insights") or session.get("selected_insight_results", [])
+    for insight in insight_list:
+        slide = prs.slides.add_slide(prs.slide_layouts[1])
+        slide.shapes.title.text = f"🔍 {insight['question']}"
+        slide.shapes.placeholders[1].text = insight['result']
+
+    slide = prs.slides.add_slide(prs.slide_layouts[1])
+    slide.shapes.title.text = "Chat History"
+    chat_text = ""
+    for chat in session.get('chat_history', []):
+        chat_text += f"🧑 {chat['user']}\n🤖 {chat['assistant'].get('response', '')}\n\n"
+
+    slide.shapes.placeholders[1].text = chat_text
+
+    output_path = os.path.join("exports", filename)
+    prs.save(output_path)
+    return output_path
+
+
+

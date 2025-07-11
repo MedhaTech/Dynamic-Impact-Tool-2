@@ -63,3 +63,45 @@ def visualize_comparison_side_by_side(df1, df2, x, y, chart_type):
         return fig1, fig2
     except Exception as e:
         return None, None
+
+
+import re
+import pandas as pd
+import plotly.express as px
+
+def guess_and_generate_chart(df: pd.DataFrame, insight_text: str):
+    """
+    Guess what chart to generate from insight text and plot from dataframe.
+    Returns a Plotly figure if a valid chart suggestion is found.
+    """
+    try:
+        # Match possible chart types and column mentions
+        chart_type = None
+        if "histogram" in insight_text.lower():
+            chart_type = "histogram"
+        elif "bar chart" in insight_text.lower():
+            chart_type = "bar"
+        elif "line chart" in insight_text.lower() or "trend" in insight_text.lower():
+            chart_type = "line"
+        elif "scatter" in insight_text.lower():
+            chart_type = "scatter"
+
+        # Try to guess column from the text
+        possible_cols = [col for col in df.columns if re.search(rf"\b{col}\b", insight_text, re.IGNORECASE)]
+        x_col = possible_cols[0] if possible_cols else df.columns[0]
+
+        if chart_type == "histogram":
+            return px.histogram(df, x=x_col, title=f"Histogram of {x_col}")
+        elif chart_type == "bar":
+            value_counts = df[x_col].value_counts().nlargest(20)
+            return px.bar(x=value_counts.index, y=value_counts.values, labels={"x": x_col, "y": "Count"},
+                          title=f"Bar Chart of {x_col}")
+        elif chart_type == "line":
+            if pd.api.types.is_numeric_dtype(df[x_col]):
+                return px.line(df, x=df.index, y=x_col, title=f"Line Chart of {x_col}")
+        elif chart_type == "scatter":
+            if len(possible_cols) >= 2:
+                return px.scatter(df, x=possible_cols[0], y=possible_cols[1], title="Scatter Plot")
+        return None
+    except Exception:
+        return None

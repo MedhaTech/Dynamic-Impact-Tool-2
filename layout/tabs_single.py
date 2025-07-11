@@ -5,6 +5,7 @@ from utils.insight_suggester import generate_insights, generate_insight_suggesti
 from utils.llm_selector import get_llm
 from utils.chat_handler import handle_user_query_dynamic
 from utils.error_handler import safe_llm_call
+from utils.visualizer import guess_and_generate_chart
 import pandas as pd
 import re
 import json
@@ -41,7 +42,10 @@ def render_single_tabs():
         st.write(f"Selected Columns: {final_cols}")
         st.dataframe(df[final_cols].head(), use_container_width=True)
 
-    # ==================== Tab 2: Insights ==================== #
+   
+
+    
+    # ==================== Commented Out Insights Section(OG)==================== #
     with tab2:
         st.header("🧠 Insights")
 
@@ -54,20 +58,29 @@ def render_single_tabs():
                     with st.container(border=True):
                         st.markdown(f"**🔍 {insight['question']}**")
                         st.markdown(insight["result"])
+                        fig = guess_and_generate_chart(df, insight["result"])
+                        if fig:
+                            st.plotly_chart(fig, use_container_width=True)
                         st.markdown("---")
             else:
                 st.info("Please select an insight question from the right to view the results.")
 
         with col_right:
-            st.markdown("### 🔍 Insight Categories")
-
-            if not session["insight_categories"]:
+            with st.container():
+             st.markdown("""
+                <div style='position:sticky; top:90px; z-index:1; background-color:white; padding:0.5rem 1rem; border-radius:0.5rem; box-shadow:0 0 10px rgba(0,0,0,0.05);'>
+                    <h4 style='margin-bottom:0.8rem;'>🔎 Insight Categories</h4>
+            """, unsafe_allow_html=True)
+             if "open_category_index_single" not in st.session_state:
+                st.session_state["open_category_index_single"] = None
+            
+             if not session["insight_categories"]:
                 try:
-                    preview = df.head(10).to_csv(index=False)[:2048]
+                    preview = df
                     llm = get_llm("groq")
 
                     prompt = f"""
-                    I have the following dataset preview:
+                    You are provided with a dataset preview and some representative sample rows.
                     {preview}
 
                     Please generate 5-6 analytical insight categories with 4-6 detailed questions each.
@@ -91,17 +104,19 @@ def render_single_tabs():
                     st.error(f"Insight suggestion failed: {e}")
                     session["insight_categories"] = []
 
-            for idx, category in enumerate(session["insight_categories"]):
-                with st.expander(f"📂 {category['title']}", expanded=False):
+             for idx, category in enumerate(session["insight_categories"]):
+                expanded = st.session_state["open_category_index_single"] == idx
+                with st.expander(f"📂 {category['title']}", expanded=expanded):
                     for question in category["questions"]:
                         if st.button(f"🔎 {question}", key=f"insight_{idx}_{question}"):
                             try:
                                 result = generate_insights(df, question, "groq")
                                 session["selected_insight_results"].append({"question": question, "result": result})
+                                st.session_state["open_category_index_single"] = idx
                                 st.rerun()
                             except Exception as e:
-                                st.error(f"Insight generation failed: {e}")
-
+                                 st.error(f"Insight generation failed: {e}")
+             st.markdown("</div>", unsafe_allow_html=True)
     # ==================== Tab 3: Visualizations ==================== #
     with tab3:
         st.header("📈 Visualizations")
@@ -149,6 +164,7 @@ def render_single_tabs():
     with col1:
      if st.button("📄 Export PDF (Single Dataset)", key="export_single_pdf"):
         try:
+            session["name"] = st.session_state["current_session"]
             pdf_path = generate_pdf_report(session)
             with open(pdf_path, "rb") as f:
                 st.download_button("Download PDF", f, file_name="single_dataset_report.pdf")

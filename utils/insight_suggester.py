@@ -95,18 +95,18 @@ def generate_insight_suggestions(preview_data, model_source="groq"):
 
 def generate_insights(df, title, model_source="groq"):
     llm = get_llm(model_source)
-
-    # Limit preview to 10 rows max and truncate to 2048 characters
-    preview = df.head(10).to_csv(index=False)[:2048]
-
+    # preview = df.to_csv(index=False)[:10000]
+    dataset =df
     prompt = f"""You are a data analyst. Based on the dataset and the selected insight title, generate an analytical insight.
 
 Title: {title}
 
-CSV Preview:
-{preview}
+Based on the provided Dataset:
+{dataset}
 
 Respond in markdown format with your full analysis.
+
+-Do Not Create your own column names, use the ones provided in the CSV.
 """
 
     return llm(prompt)
@@ -119,8 +119,8 @@ Respond in markdown format with your full analysis.
 def generate_comparison_insights(df1, df2, model_source="groq"):
     llm = get_llm(model_source)
 
-    sample1 = df1.head(10).to_csv(index=False)[:1024]
-    sample2 = df2.head(10).to_csv(index=False)[:1024]
+    sample1 = df1.to_csv(index=False)[:10000]
+    sample2 = df2.to_csv(index=False)[:10000]
 
     prompt = f"""You are a data analyst. Given these two datasets, suggest 3 insightful comparisons a user may want to explore.
 
@@ -150,32 +150,32 @@ Respond in JSON format:
 
 
 
-import json
-from utils.llm_selector import get_llm
-from utils.json_utils import extract_json_list  # You’ll add this next
+# import json
+# from utils.llm_selector import get_llm
+# from utils.json_utils import extract_json_list  # You’ll add this next
 
-def generate_comparison_insights(df1, df2, model_source="groq"):
-    llm = get_llm(model_source)
+# def generate_comparison_insights(df1, df2, model_source="groq"):
+#     llm = get_llm(model_source)
 
-    prompt = f"""You are a data analyst. Given two datasets (CSV previews), suggest 3 insightful comparisons.
+#     prompt = f"""You are a data analyst. Given two datasets (CSV previews), suggest 3 insightful comparisons.
 
-Dataset 1:
-{df1.head(10).to_csv(index=False)}
+# Dataset 1:
+# {df1.head(10).to_csv(index=False)}
 
-Dataset 2:
-{df2.head(10).to_csv(index=False)}
+# Dataset 2:
+# {df2.head(10).to_csv(index=False)}
 
-Respond ONLY in JSON like:
-[
-  {{ "title": "Insight 1", "description": "..." }},
-  ...
-]
-"""
+# Respond ONLY in JSON like:
+# [
+#   {{ "title": "Insight 1", "description": "..." }},
+#   ...
+# ]
+# """
 
-    response = llm(prompt).strip()
+#     response = llm(prompt).strip()
 
-    try:
-        return json.loads(response)
-    except json.JSONDecodeError:
-        # try to extract JSON manually from partial responses
-        return extract_json_list(response)
+#     try:
+#         return json.loads(response)
+#     except json.JSONDecodeError:
+#         # try to extract JSON manually from partial responses
+#         return extract_json_list(response)

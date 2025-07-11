@@ -2,13 +2,14 @@ import streamlit as st
 from io import BytesIO
 from utils.file_loader import load_data, clean_data
 from utils.visualizer import visualize_comparison_overlay, visualize_comparison_side_by_side
-from utils.insight_suggester import generate_insight_suggestions, generate_insights
+from utils.insight_suggester import generate_insights
 from utils.chat_handler import handle_user_query_dynamic
 from utils.error_handler import safe_llm_call
 import pandas as pd
 from utils.column_selector import get_important_columns
 from utils.insight_generator import generate_comparison_insight_suggestions
 from utils.llm_selector import get_llm
+from utils.pdf_exporter import generate_pdf_report, export_to_pptx
 import re
 import json
 def render_comparison_tabs():
@@ -96,14 +97,101 @@ def render_comparison_tabs():
                 st.error(f"Comparison visualization failed: {e}")
 
     # ==================== Tab 2: Comparison Insights ==================== #
-
     
+ 
+    # with tab2:
+    #  st.header("🧠 Comparison Insights")
+
+    #  merged_df = pd.concat([df1.assign(dataset="Dataset 1"), df2.assign(dataset="Dataset 2")])
+    #  preview = merged_df.to_csv(index=False)[:10000]
+
+    #  col_left, col_right = st.columns([0.7, 0.3], gap="large")
+
+    #  with col_left:
+    #     st.markdown("### 📋 Generated Comparison Insights")
+    #     if compare_session["insights"]:
+    #         for insight in compare_session["insights"][::-1]:
+    #             with st.container(border=True):
+    #                 st.markdown(f"**🔍 {insight['question']}**")
+    #                 st.markdown(insight["result"])
+    #                 st.markdown("---")
+    #     else:
+    #         st.info("Please select a comparison insight question from the right to view the results.")
+
+    #  with col_right:
+    #     st.markdown("### 🔍 Comparison Insight Categories")
+
+    #     # Initialize accordion state
+    #     if "open_compare_category" not in st.session_state:
+    #         st.session_state["open_compare_category"] = None
+
+    #     # Scrollable container
+    #     with st.container(border=True):
+    #         st.markdown("<div style='height: 500px; overflow-y: auto; padding-right: 10px;'>", unsafe_allow_html=True)
+
+    #         if not compare_session.get("insight_categories"):
+    #             try:
+    #                 llm = get_llm("groq")
+
+    #                 prompt = f"""
+    #                 You are provided with the following combined dataset preview:
+    #                 {preview}
+
+    #                 The dataset contains records from two sources:
+    #                 - Dataset 1
+    #                 - Dataset 2
+
+    #                 Please generate 5-6 analytical comparison insight categories.
+    #                 For each category, provide 4-6 detailed comparison-based analytical questions that compare Dataset 1 and Dataset 2.
+
+    #                 ⚠️ IMPORTANT:
+    #                 Return strictly in the following JSON format:
+    #                 [
+    #                     {{
+    #                         "title": "Category Name",
+    #                         "questions": ["Question 1", "Question 2", "Question 3"]
+    #                     }},
+    #                     ...
+    #                 ]
+
+    #                 ❗ Do not include any introduction, explanation, or extra text. Only return the JSON array.
+    #                 """
+
+    #                 response = llm(prompt)
+    #                 if hasattr(response, "content"):
+    #                     response = response.content
+
+    #                 json_string = re.search(r"\[.*\]", response, re.DOTALL).group(0)
+    #                 categories = json.loads(json_string)
+    #                 compare_session["insight_categories"] = categories
+    #                 st.toast("✅ Comparison insight categories loaded successfully.")
+    #                 st.rerun()
+    #             except Exception as e:
+    #                 st.error(f"Comparison insight suggestion failed: {e}")
+    #                 compare_session["insight_categories"] = []
+
+    #         for idx, category in enumerate(compare_session.get("insight_categories", [])):
+    #             expanded = st.session_state["open_compare_category"] == idx
+    #             with st.expander(f"📂 {category['title']}", expanded=expanded):
+    #                 for question in category.get("questions", []):
+    #                     if st.button(f"🔎 {question}", key=f"compare_insight_{idx}_{question}"):
+    #                         try:
+    #                             result = generate_insights(merged_df, question, "groq")
+    #                             compare_session["insights"].append({"question": question, "result": result})
+    #                             st.session_state["open_compare_category"] = idx
+    #                             st.rerun()
+    #                         except Exception as e:
+    #                             st.error(f"Comparison insight generation failed: {e}")
+
+    #         st.markdown("</div>", unsafe_allow_html=True)
+
+
+
     with tab2:
-       
      st.header("🧠 Comparison Insights")
 
      merged_df = pd.concat([df1.assign(dataset="Dataset 1"), df2.assign(dataset="Dataset 2")])
-     preview = merged_df.head(10).to_csv(index=False)[:2048]
+     preview = merged_df.to_csv(index=False)[:10000]
 
      col_left, col_right = st.columns([7, 3], gap="large")
 
@@ -114,6 +202,22 @@ def render_comparison_tabs():
                 with st.container(border=True):
                     st.markdown(f"**🔍 {insight['question']}**")
                     st.markdown(insight["result"])
+
+                    # === Visualization Trigger Detection ===
+                    if any(keyword in insight["result"].lower() for keyword in ["[insert graph here]", "visual representation:", "see the graph", "following graph"]):
+                        try:
+                            st.markdown("**📈 Auto-Generated Graph:**")
+                            import plotly.express as px
+
+                            numeric_cols = merged_df.select_dtypes(include='number').columns.tolist()
+                            if len(numeric_cols) >= 2:
+                                fig = px.line(merged_df, x=numeric_cols[0], y=numeric_cols[1], title=f"{numeric_cols[1]} over {numeric_cols[0]}")
+                                st.plotly_chart(fig, use_container_width=True)
+                            else:
+                                st.info("Not enough numeric columns to generate graph.")
+                        except Exception as e:
+                            st.warning(f"Auto-graph rendering failed: {e}")
+
                     st.markdown("---")
         else:
             st.info("Please select a comparison insight question from the right to view the results.")
@@ -178,6 +282,87 @@ def render_comparison_tabs():
                             st.rerun()
                         except Exception as e:
                             st.error(f"Comparison insight generation failed: {e}")
+
+    # with tab2:
+       
+    #  st.header("🧠 Comparison Insights")
+
+    #  merged_df = pd.concat([df1.assign(dataset="Dataset 1"), df2.assign(dataset="Dataset 2")])
+    #  preview = merged_df.to_csv(index=False)[:10000]
+
+    #  col_left, col_right = st.columns([7, 3], gap="large")
+
+    #  with col_left:
+    #     st.markdown("### 📋 Generated Comparison Insights")
+    #     if compare_session["insights"]:
+    #         for insight in compare_session["insights"][::-1]:
+    #             with st.container(border=True):
+    #                 st.markdown(f"**🔍 {insight['question']}**")
+    #                 st.markdown(insight["result"])
+    #                 st.markdown("---")
+    #     else:
+    #         st.info("Please select a comparison insight question from the right to view the results.")
+
+    #  with col_right:
+    #     st.markdown("### 🔍 Comparison Insight Categories")
+
+    #     if not compare_session.get("insight_categories"):
+    #         try:
+    #             llm = get_llm("groq")
+
+    #             prompt = f"""
+    #             You are provided with the following combined dataset preview:
+    #             {preview}
+
+    #             The dataset contains records from two sources:
+    #             - Dataset 1
+    #             - Dataset 2
+
+    #             Please generate 5-6 analytical comparison insight categories.
+    #             For each category, provide 4-6 detailed comparison-based analytical questions that compare Dataset 1 and Dataset 2.
+
+    #             Example questions:
+    #             - How do the average values of column X compare between Dataset 1 and Dataset 2?
+    #             - Which dataset has higher variability in column Y?
+    #             - Is there a noticeable difference in trends for column Z across datasets?
+
+    #             ⚠️ IMPORTANT:
+    #             Return strictly in the following JSON format:
+    #             [
+    #                 {{
+    #                     "title": "Category Name",
+    #                     "questions": ["Question 1", "Question 2", "Question 3"]
+    #                 }},
+    #                 ...
+    #             ]
+
+    #             ❗ Do not include any introduction, explanation, or extra text. Only return the JSON array.
+    #             """
+
+    #             response = llm(prompt)
+    #             if hasattr(response, "content"):
+    #                 response = response.content
+
+    #             json_string = re.search(r"\[.*\]", response, re.DOTALL).group(0)
+    #             categories = json.loads(json_string)
+    #             compare_session["insight_categories"] = categories
+    #             st.toast("✅ Comparison insight categories loaded successfully.")
+    #             st.rerun()
+
+    #         except Exception as e:
+    #             st.error(f"Comparison insight suggestion failed: {e}")
+    #             compare_session["insight_categories"] = []
+
+    #     for idx, category in enumerate(compare_session.get("insight_categories", [])):
+    #         with st.expander(f"📂 {category['title']}", expanded=False):
+    #             for question in category.get("questions", []):
+    #                 if st.button(f"🔎 {question}", key=f"compare_insight_{idx}_{question}"):
+    #                     try:
+    #                         result = generate_insights(merged_df, question, "groq")
+    #                         compare_session["insights"].append({"question": question, "result": result})
+    #                         st.rerun()
+    #                     except Exception as e:
+    #                         st.error(f"Comparison insight generation failed: {e}")
 
     #  st.header("🧠 Suggested Comparison Insights")
 
@@ -281,27 +466,46 @@ def render_comparison_tabs():
         with st.chat_message("assistant"):
             st.markdown(msg["assistant"].get("response", msg["assistant"]))
 
-    from utils.pdf_exporter import generate_pdf_report, export_to_pptx
-
-    st.markdown("---")
-    st.subheader("📁 Export Report")
-
-    col1, col2 = st.columns(2)
-    with col1:
-     if st.button("📄 Export PDF (Comparison)", key="export_compare_pdf"):
+    with col_right:
+     st.markdown("### 📥 Export Report")
+     if st.button("📄 Export PDF", key="export_pdf_compare"):
         try:
-            pdf_path = generate_pdf_report(compare_session, compare_mode=True)
+            compare_session["name"] = st.session_state["current_session"]
+            pdf_path = generate_pdf_report(compare_session, filename="comparison_summary.pdf")
             with open(pdf_path, "rb") as f:
-                st.download_button("Download PDF", f, file_name="comparison_report.pdf")
+                st.download_button("Download PDF", f, file_name="comparison_summary.pdf")
         except Exception as e:
             st.error(f"Failed to export PDF: {e}")
 
-    with col2:
-     if st.button("📊 Export PPTX (Comparison)", key="export_compare_pptx"):
+     if st.button("📊 Export PPTX", key="export_pptx_compare"):
         try:
-            pptx_path = export_to_pptx(compare_session, compare_mode=True)
+            pptx_path = export_to_pptx(compare_session, filename="comparison_summary.pptx")
             with open(pptx_path, "rb") as f:
-                st.download_button("Download PPTX", f, file_name="comparison_report.pptx")
+                st.download_button("Download PPTX", f, file_name="comparison_summary.pptx")
         except Exception as e:
             st.error(f"Failed to export PPTX: {e}")
+
+    # from utils.pdf_exporter import generate_pdf_report, export_to_pptx
+
+    # st.markdown("---")
+    # st.subheader("📁 Export Report")
+
+    # col1, col2 = st.columns(2)
+    # with col1:
+    #   if st.button("📄 Export PDF (Comparison)", key="export_compare_pdf"):
+    #     try:
+    #         pdf_path = generate_pdf_report(compare_session, compare_mode=True)
+    #         with open(pdf_path, "rb") as f:
+    #             st.download_button("Download PDF", f, file_name="comparison_report.pdf")
+    #     except Exception as e:
+    #         st.error(f"Failed to export PDF: {e}")
+
+    # with col2:
+    #   if st.button("📊 Export PPTX (Comparison)", key="export_compare_pptx"):
+    #     try:
+    #         pptx_path = export_to_pptx(compare_session, compare_mode=True)
+    #         with open(pptx_path, "rb") as f:
+    #             st.download_button("Download PPTX", f, file_name="comparison_report.pptx")
+    #     except Exception as e:
+    #         st.error(f"Failed to export PPTX: {e}")
 

@@ -28,6 +28,8 @@ def render_upload_area():
                         "visualization_history": [],
                         "column_selection": []
                     }
+                    st.session_state["dataset_sessions"][file_name]["name"] = file_name
+
 
                 st.session_state["current_session"] = file_name
                 st.toast(f"✅ {file_name} uploaded successfully.")
@@ -98,6 +100,8 @@ def render_upload_area():
                     "insights": [],
                     "visualization_history": []
                 }
+                st.session_state["compare_sessions"][compare_key]["name"] = compare_key
+
 
                 st.session_state["current_compare"] = compare_key
                 st.toast(f"✅ Comparison loaded: {compare_key}")
