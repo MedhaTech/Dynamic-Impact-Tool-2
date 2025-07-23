@@ -1,5 +1,17 @@
 import plotly.express as px
 import pandas as pd
+import plotly.express as px
+
+def save_plot_as_image(df, name="insight_plot"):
+    import plotly.io as pio
+    try:
+        fig = px.line(df)  # generic fallback graph
+        path = f"temp_charts/{name}.png"
+        pio.write_image(fig, path, format="png", width=800, height=400)
+        return path
+    except Exception as e:
+        print(f"Failed to save plot image: {e}")
+        return None
 
 def visualize_from_llm_response(df, query, llm_response):
     chart_type = llm_response.get("chart_type", "bar").lower()

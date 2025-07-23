@@ -106,7 +106,7 @@ Based on the provided Dataset:
 
 Respond in markdown format with your full analysis.
 
--Do Not Create your own column names, use the ones provided in the CSV.
+-Do Not Create your own column names, use the ones provided in the DataSet.
 """
 
     return llm(prompt)

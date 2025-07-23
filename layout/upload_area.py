@@ -71,6 +71,10 @@ def render_upload_area():
         file_path1 = col1.text_input("Or Enter Path for Dataset 1")
         file_path2 = col2.text_input("Or Enter Path for Dataset 2")
 
+        # st.session_state["df1"] = df1
+        # st.session_state["df2"] = df2
+        
+
         if st.button("Upload and Compare", key="upload_compare_button"):
             try:
                 if uploaded_file1 is not None and uploaded_file2 is not None:

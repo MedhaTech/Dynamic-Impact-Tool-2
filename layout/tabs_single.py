@@ -1,15 +1,16 @@
 import streamlit as st
+import os
+import pandas as pd
+import re
+import json
 from utils.column_selector import get_important_columns
 from utils.visualizer import visualize_from_llm_response
 from utils.insight_suggester import generate_insights, generate_insight_suggestions
 from utils.llm_selector import get_llm
 from utils.chat_handler import handle_user_query_dynamic
 from utils.error_handler import safe_llm_call
-from utils.visualizer import guess_and_generate_chart
-import pandas as pd
-import re
-import json
 from utils.pdf_exporter import generate_pdf_report, export_to_pptx
+import matplotlib.pyplot as plt
 
 def render_single_tabs():
     if st.session_state["current_session"] is None:
@@ -42,10 +43,7 @@ def render_single_tabs():
         st.write(f"Selected Columns: {final_cols}")
         st.dataframe(df[final_cols].head(), use_container_width=True)
 
-   
-
-    
-    # ==================== Commented Out Insights Section(OG)==================== #
+    # ==================== Tab 2: Insights ==================== #
     with tab2:
         st.header("🧠 Insights")
 
@@ -58,29 +56,46 @@ def render_single_tabs():
                     with st.container(border=True):
                         st.markdown(f"**🔍 {insight['question']}**")
                         st.markdown(insight["result"])
-                        fig = guess_and_generate_chart(df, insight["result"])
-                        if fig:
-                            st.plotly_chart(fig, use_container_width=True)
-                        st.markdown("---")
+                        
+                        # 🔍 Auto-detect if graph should be generated
+                        if "graph" in insight["result"].lower() or "visual" in insight["result"].lower() or "chart" in insight["result"].lower() or "plot" in insight["result"].lower():
+                            try:
+                                # Very basic detection of x/y axis from the answer text
+                                x_axis, y_axis = None, None
+                                for col in session["column_selection"]:
+                                    if col.lower() in insight["result"].lower():
+                                        if not x_axis:
+                                            x_axis = col
+                                        elif not y_axis and col != x_axis:
+                                            y_axis = col
+
+                                if x_axis and y_axis:
+                                    llm_response = {"chart_type": "line", "x": x_axis, "y": y_axis}
+                                    fig, _ = visualize_from_llm_response(df, f"{x_axis} vs {y_axis}", llm_response)
+                                    if fig:
+                                        st.plotly_chart(fig, use_container_width=True)
+                                        
+                                        # Save the figure to image
+                                        image_dir = "generated_plots"
+                                        os.makedirs(image_dir, exist_ok=True)
+                                        image_path = os.path.join(image_dir, f"{x_axis}_vs_{y_axis}.png")
+                                        fig.write_image(image_path)
+                                        insight["image_path"] = image_path
+                            except Exception as e:
+                                st.warning(f"⚠️ Graph rendering failed: {e}")
             else:
                 st.info("Please select an insight question from the right to view the results.")
 
         with col_right:
-            with st.container():
-             st.markdown("""
-                <div style='position:sticky; top:90px; z-index:1; background-color:white; padding:0.5rem 1rem; border-radius:0.5rem; box-shadow:0 0 10px rgba(0,0,0,0.05);'>
-                    <h4 style='margin-bottom:0.8rem;'>🔎 Insight Categories</h4>
-            """, unsafe_allow_html=True)
-             if "open_category_index_single" not in st.session_state:
-                st.session_state["open_category_index_single"] = None
-            
-             if not session["insight_categories"]:
+            st.markdown("### 🔍 Insight Categories")
+
+            if not session["insight_categories"]:
                 try:
-                    preview = df
+                    preview = df.to_csv(index=False)[:10000]
                     llm = get_llm("groq")
 
                     prompt = f"""
-                    You are provided with a dataset preview and some representative sample rows.
+                    I have the following dataset preview:
                     {preview}
 
                     Please generate 5-6 analytical insight categories with 4-6 detailed questions each.
@@ -104,19 +119,21 @@ def render_single_tabs():
                     st.error(f"Insight suggestion failed: {e}")
                     session["insight_categories"] = []
 
-             for idx, category in enumerate(session["insight_categories"]):
-                expanded = st.session_state["open_category_index_single"] == idx
-                with st.expander(f"📂 {category['title']}", expanded=expanded):
+            for idx, category in enumerate(session["insight_categories"]):
+                with st.expander(f"📂 {category['title']}", expanded=False):
                     for question in category["questions"]:
                         if st.button(f"🔎 {question}", key=f"insight_{idx}_{question}"):
                             try:
                                 result = generate_insights(df, question, "groq")
-                                session["selected_insight_results"].append({"question": question, "result": result})
-                                st.session_state["open_category_index_single"] = idx
+                                session["selected_insight_results"].append({
+                                    "question": question,
+                                    "result": result,
+                                    "image_path": None  # initially none, populated later
+                                })
                                 st.rerun()
                             except Exception as e:
-                                 st.error(f"Insight generation failed: {e}")
-             st.markdown("</div>", unsafe_allow_html=True)
+                                st.error(f"Insight generation failed: {e}")
+
     # ==================== Tab 3: Visualizations ==================== #
     with tab3:
         st.header("📈 Visualizations")
@@ -140,7 +157,7 @@ def render_single_tabs():
             except Exception as e:
                 st.error(f"Visualization failed: {e}")
 
-    # ==================== Chatbot (Common for all tabs) ==================== #
+    # ==================== Chatbot ==================== #
     st.markdown("---")
     st.subheader("💬 Chat With Your Dataset")
 
@@ -155,27 +172,30 @@ def render_single_tabs():
             st.markdown(msg["user"])
         with st.chat_message("assistant"):
             st.markdown(msg["assistant"].get("response", msg["assistant"]))
-    from utils.pdf_exporter import generate_pdf_report, export_to_pptx
 
     st.markdown("---")
     st.subheader("📁 Export Report")
 
     col1, col2 = st.columns(2)
     with col1:
-     if st.button("📄 Export PDF (Single Dataset)", key="export_single_pdf"):
-        try:
-            session["name"] = st.session_state["current_session"]
-            pdf_path = generate_pdf_report(session)
-            with open(pdf_path, "rb") as f:
-                st.download_button("Download PDF", f, file_name="single_dataset_report.pdf")
-        except Exception as e:
-            st.error(f"Failed to export PDF: {e}")
+        if st.button("📄 Export PDF (Single Dataset)", key="export_single_pdf"):
+            try:
+                session["name"] = st.session_state["current_session"]
+                # Sync for export
+                session["insights"] = session.get("selected_insight_results", [])
+
+                pdf_path = generate_pdf_report(session)
+                with open(pdf_path, "rb") as f:
+                    st.download_button("Download PDF", f, file_name="single_dataset_report.pdf")
+            except Exception as e:
+                st.error(f"Failed to export PDF: {e}")
 
     with col2:
-     if st.button("📊 Export PPTX (Single Dataset)", key="export_single_pptx"):
-        try:
-            pptx_path = export_to_pptx(session)
-            with open(pptx_path, "rb") as f:
-                st.download_button("Download PPTX", f, file_name="single_dataset_report.pptx")
-        except Exception as e:
-            st.error(f"Failed to export PPTX: {e}")
+        if st.button("📊 Export PPTX (Single Dataset)", key="export_single_pptx"):
+            try:
+                session["name"] = st.session_state["current_session"]
+                pptx_path = export_to_pptx(session)
+                with open(pptx_path, "rb") as f:
+                    st.download_button("Download PPTX", f, file_name="single_dataset_report.pptx")
+            except Exception as e:
+                st.error(f"Failed to export PPTX: {e}")
